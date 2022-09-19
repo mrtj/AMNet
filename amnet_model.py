@@ -17,7 +17,7 @@ import numpy as np
 class VGG16FC(nn.Module):
     def __init__(self):
         super(VGG16FC, self).__init__()
-        model = models.vgg16(pretrained=True)
+        model = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
         self.core_cnn = nn.Sequential(*list(model.features.children())[:-7])  # to relu5_3`
         self.D=512
         return
@@ -29,7 +29,7 @@ class VGG16FC(nn.Module):
 class ResNet18FC(nn.Module):
     def __init__(self):
         super(ResNet18FC, self).__init__()
-        self.core_cnn = models.resnet18(pretrained=True)
+        self.core_cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         self.D=256
         return
 
@@ -48,7 +48,7 @@ class ResNet18FC(nn.Module):
 class ResNet50FC(nn.Module):
     def __init__(self):
         super(ResNet50FC, self).__init__()
-        self.core_cnn = models.resnet50(pretrained=True)
+        self.core_cnn = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         self.D = 1024
         return
 
@@ -67,7 +67,7 @@ class ResNet50FC(nn.Module):
 class ResNet101FC(nn.Module):
     def __init__(self):
         super(ResNet101FC, self).__init__()
-        self.core_cnn = models.resnet101(pretrained=True)
+        self.core_cnn = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
         self.D = 1024
         return
 
@@ -89,7 +89,7 @@ class ResNet101FC(nn.Module):
 class ResNet50FT(nn.Module):
     def __init__(self):
         super(ResNet50FT, self).__init__()
-        self.core_cnn = models.resnet50(pretrained=True)
+        self.core_cnn = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         self.avgpool = nn.AvgPool2d(7)
         expansion = 4
         self.fc = nn.Linear(512 * expansion, 1)
