@@ -124,7 +124,7 @@ class AMemNetModel(nn.Module):
         super(AMemNetModel, self).__init__()
 
         self.hps = hps
-        self.use_attention = hps.use_attention
+        # self.use_attention = hps.use_attention
         #self.force_distribute_attention = hps.force_distribute_attention
         self.with_bn = True
 
@@ -174,14 +174,14 @@ class AMemNetModel(nn.Module):
 
     def forward(self, x):
 
-        if not self.use_attention:
-            self.alpha = torch.Tensor(x.size(0), self.a_vec_num)
-            self.alpha = Variable(self.alpha)
-            if self.hps.use_cuda:
-                self.alpha = self.alpha.cuda()
+        # if not self.use_attention:
+        #     alpha_ = torch.zeros(x.size(0), self.a_vec_num)
+        #     alpha_ = Variable(alpha_)
+        #     if self.hps.use_cuda:
+        #         alpha_ = alpha_.cuda()
 
-            nn.init.constant(self.alpha, 1)
-            self.alpha = self.alpha / self.a_vec_num
+        #     nn.init.constant(alpha_, 1)
+        #     alpha_ = alpha_ / self.a_vec_num
 
         x = self.core_cnn(x)
 
@@ -220,23 +220,23 @@ class AMemNetModel(nn.Module):
         if steps == 0:
             steps = 1
 
-        output_seq = [0] * steps
-        alphas = [0] * steps
+        output_seq = []
+        alphas = []
 
         for i in range(steps):
 
-            if self.use_attention:
+            if True: # self.use_attention:
 
                 # Dynamic part of the alpha map from the current hidden RNN state
-                if 0:
-                    eh = self.eh12(h)  # -> [H -> D]
-                    eh = eh.view(-1, self.a_vec_size, 1) # [B, D, 1]
-                    eh = e+eh # [B, D, L]  + [B, D, 1]  => adds the eh vec[D] to all positions [L] of the e tensor
+                # if 0:
+                #     eh = self.eh12(h)  # -> [H -> D]
+                #     eh = eh.view(-1, self.a_vec_size, 1) # [B, D, 1]
+                #     eh = e+eh # [B, D, L]  + [B, D, 1]  => adds the eh vec[D] to all positions [L] of the e tensor
 
-                if 1:
-                    eh = self.eh1(h)  # -> [H -> L]
-                    eh = eh.view(-1, 1, self.a_vec_num)  # [B, 1, L]
-                    eh = e+eh  # [B, D, L]  + [B, 1, L]
+                # if 1:
+                eh = self.eh1(h)  # -> [H -> L]
+                eh = eh.view(-1, 1, self.a_vec_num)  # [B, 1, L]
+                eh = e+eh  # [B, D, L]  + [B, 1, L]
 
                 eh = self.relu(eh)
                 eh = self.drop50(eh)
@@ -250,8 +250,8 @@ class AMemNetModel(nn.Module):
 
                 alpha = self.softmax(eh) # -> [B, L]
 
-            else:
-                alpha = self.alpha
+            # else:
+            #     alpha = alpha_
 
             alpha_a = alpha.view(alpha.size(0), self.a_vec_num, 1) # -> [B, L, 1]
             z = a.bmm(alpha_a) # ->[B, D, 1] scale the location feature vectors by the alpha mask and add them (matrix mul)
@@ -261,21 +261,21 @@ class AMemNetModel(nn.Module):
             z = z.expand(1, z.size(0), z.size(1)) # Prepend a new, single dimension representing the sequence
 
             if self.seq_len == 0:
-                z = z.squeeze(dim=0)
-                h = self.drop50(z)
+                # z = z.squeeze(dim=0)
+                # h = self.drop50(z)
 
-                out = self.regnet1(h)
-                out = self.relu(out)
-                out = self.drop50(out)
-                out = self.regnet4(out)
+                # out = self.regnet1(h)
+                # out = self.relu(out)
+                # out = self.drop50(out)
+                # out = self.regnet4(out)
 
-                output_seq[0] = out
-                alphas[0] = alpha.unsqueeze(1)
+                # output_seq[0] = out
+                # alphas[0] = alpha.unsqueeze(1)
 
                 break
 
             # Run RNN step
-            self.rnn.flatten_parameters()
+            # self.rnn.flatten_parameters()
             h, rnn_state = self.rnn(z, rnn_state)
             h = h.squeeze(dim=0)  # remove the seqeunce dimension
             h = self.drop50(h)
@@ -287,14 +287,15 @@ class AMemNetModel(nn.Module):
 
             # Store the output and the attention mask
             ind = i
-            output_seq[ind] = out
-            alphas[ind] = alpha.unsqueeze(1)
+            output_seq.append(out)
+            alphas.append(alpha.unsqueeze(1))
 
 
         output_seq = torch.cat(output_seq, 1)
         alphas = torch.cat(alphas, 1)
 
-        output = None
+        output = torch.empty(0)
+
         return output, output_seq, alphas
 
 
