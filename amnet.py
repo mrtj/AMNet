@@ -47,7 +47,7 @@ class PredictionResult():
 
         print('Id\tfilename'+(' '*(max_len-8+5))+'predicted\tGT')
         for i, (image, prediction, target) in enumerate(zip(self.image_names, self.predictions, self.targets)):
-            print(str(i)+'\t'+image + (' '*(max_len-len(image)+5)) + str(round(prediction,3)) + '  \t' + str(round(target,3)) )
+            print(str(i)+'\t'+image + (' '*(max_len-len(image)+5)) + str(round(prediction.item(),3)) + '  \t' + str(round(target.item(),3)) )
 
         return
 
@@ -62,6 +62,7 @@ class PredictionResult():
 
         images = self.image_names
         att_maps = self.attention_masks
+        print('att_maps:', att_maps.shape)
 
         num_images = len(att_maps)
         seq_len = self.outputs.shape[1]
@@ -423,11 +424,11 @@ class AMNet:
                         took_total_min, took_total,
                         epoch, batch_idx * len(data), total_samples,
                         100. * batch_idx / len(train_loader),
-                        loss.data[0], reg_loss.data[0], (att_loss.data[0] if att_loss is not None else 0), took))
+                        loss.item(), reg_loss.item(), (att_loss.item() if att_loss is not None else 0), took))
 
             self.logger.write(train=True, epoch=epoch, epoch_samples=total_samples,
                               sample=(batch_idx * len(data)),
-                              loss=loss.cpu().data.numpy()[0], lr=params.lr)
+                              loss=loss.cpu().data.numpy(), lr=params.lr)
 
         # Finalize the training stage
         rc, mse = train_loader.dataset.getRankCorrelationWithMSE(predictions, gt=targets)
@@ -442,7 +443,7 @@ class AMNet:
 
         self.logger.write(train=True, epoch=epoch, epoch_samples=len(train_loader.dataset),
                           sample=(batch_idx * len(data)),
-                          loss=loss.cpu().data.numpy()[0], lr=params.lr, src=rc)
+                          loss=loss.cpu().data.numpy(), lr=params.lr, src=rc)
 
         #print("--------------------------------------------------------------------")
         return
@@ -500,7 +501,7 @@ class AMNet:
             if self.hps.use_cuda:
                 data, target = data.cuda(), target.cuda()
 
-            data, target = Variable(data, volatile=True), Variable(target)
+            # data, target = Variable(data, volatile=True), Variable(target)
 
             # print(batches, len(predictions))
             batch_inference_start = time.time()
@@ -512,9 +513,9 @@ class AMNet:
 
             reg_loss, att_loss, mem_loc_loss = self.get_losses(output, outputs, alphas, target, criterion)
 
-            test_att_loss += att_loss.cpu().data.numpy()[0] if att_loss is not None else 0
-            test_reg_loss += reg_loss.cpu().data.numpy()[0]
-            test_mem_loc_loss += mem_loc_loss.cpu().data.numpy()[0]
+            test_att_loss += att_loss.cpu().data.numpy() if att_loss is not None else 0
+            test_reg_loss += reg_loss.cpu().data.numpy()
+            test_mem_loc_loss += mem_loc_loss.cpu().data.numpy()
 
             batches += 1
 
@@ -593,7 +594,7 @@ class AMNet:
             if self.hps.use_cuda:
                 data, target = data.cuda(), target.cuda()
 
-            data, target = Variable(data, volatile=True), Variable(target)
+            # data, target = Variable(data, volatile=True), Variable(target)
 
             # print(batches, len(predictions))
             batch_inference_start = time.time()
